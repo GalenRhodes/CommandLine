@@ -2,7 +2,7 @@ package com.projectgalen.cmdline;
 
 /* =================================================================================================================================
  *     PROJECT: CommandLine
- *    FILENAME: CmdLiine.java
+ *    FILENAME: CmdLineUsageException.java
  *     PACKAGE: com.projectgalen.cmdline
  *         IDE: AppCode
  *      AUTHOR: Galen Rhodes
@@ -24,6 +24,32 @@ package com.projectgalen.cmdline;
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * ============================================================================================================================== */
 
-public class CmdLine {
+public class CmdLineUsageException extends CmdLineException {
+    public CmdLineUsageException() {
+        super();
+    }
 
+    public CmdLineUsageException(String message) {
+        super(message);
+    }
+
+    public CmdLineUsageException(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
+    public CmdLineUsageException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public CmdLineUsageException(Throwable cause, String format, Object... args) {
+        super(String.format(format, args), cause);
+    }
+
+    public CmdLineUsageException(Throwable cause) {
+        super(cause);
+    }
+
+    protected CmdLineUsageException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 }
