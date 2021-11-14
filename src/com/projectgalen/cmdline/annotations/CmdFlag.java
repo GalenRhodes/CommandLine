@@ -1,9 +1,9 @@
-package com.projectgalen.cmdline;
+package com.projectgalen.cmdline.annotations;
 
 /* =================================================================================================================================
  *     PROJECT: CommandLine
- *    FILENAME: CmdLiine.java
- *     PACKAGE: com.projectgalen.cmdline
+ *    FILENAME: CmdFlag.java
+ *     PACKAGE: com.projectgalen.cmdline.annotations
  *         IDE: AppCode
  *      AUTHOR: Galen Rhodes
  *        DATE: 11/13/2021
@@ -24,6 +24,17 @@ package com.projectgalen.cmdline;
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * ============================================================================================================================== */
 
-public class CmdLine {
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.METHOD})
+public @interface CmdFlag {
+    String shortName();
+
+    String longName();
+
+    String help();
 }
