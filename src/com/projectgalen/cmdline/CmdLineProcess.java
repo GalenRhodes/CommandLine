@@ -29,6 +29,7 @@ package com.projectgalen.cmdline;
 import com.projectgalen.cmdline.annotations.CmdFlag;
 import com.projectgalen.cmdline.annotations.CmdParam;
 import com.projectgalen.cmdline.annotations.CmdSubCommand;
+import com.projectgalen.cmdline.tools.M;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
@@ -43,6 +44,8 @@ import java.util.List;
 
 public abstract class CmdLineProcess {
 
+    private static final M m = M.getInstance();
+
     private final Class<?>[] __SUBS__;
     private       Object     __TARGET__ = this;
 
@@ -50,7 +53,7 @@ public abstract class CmdLineProcess {
         this.__SUBS__ = subs;
         for(Class<?> cls : __SUBS__) {
             CmdSubCommand ann = cls.getAnnotation(CmdSubCommand.class);
-            if(ann == null) throw new CmdLineException("Class not annotated with CmdSubCommand: %s", cls.getName());
+            if(ann == null) throw new CmdLineException(m.getString("msg.err.sub_not_annotated"), cls.getName());
         }
     }
 
@@ -62,7 +65,7 @@ public abstract class CmdLineProcess {
 
         if(__SUBS__.length > 0) {
             if(args.length == 0) {
-                throw new CmdLineException("Missing command.");
+                throw new CmdLineException(m.getString("msg.err.missing_command"));
             }
             else {
                 for(Class<?> cls : __SUBS__) {
@@ -77,6 +80,8 @@ public abstract class CmdLineProcess {
         }
 
         boolean optsOnly = false;
+        String  ddash    = m.getString("ddash");
+        String  dash     = m.getString("dash");
 
         while(idx < args.length) {
             String str = args[idx++];
@@ -84,19 +89,24 @@ public abstract class CmdLineProcess {
             if(optsOnly) {
                 options.add(str);
             }
-            else if(str.startsWith("--") && str.trim().equals("--")) {
-                optsOnly = true;
-            }
-            else if(str.startsWith("--")) {
-                Foo x = getField(str.substring(2));
+            else {
+                if(str.startsWith(ddash) && str.trim().equals(ddash)) {
+                    optsOnly = true;
+                }
+                else if(str.startsWith(ddash)) {
+                    Foo x = _getField(str.substring(2), true);
 
-                if(x.an instanceof CmdParam) {
-                    if(idx >= args.length) throw new CmdLineUsageException("Missing value for parameter: --%s", str);
+                    if(x.an instanceof CmdParam) {
+                        if(idx >= args.length) {
+                            throw new CmdLineUsageException(m.getString("msg.err.missing_value"), str);
+                        }
+                    }
+                    else if(x.an instanceof CmdFlag) {
+                    }
                 }
-                else if(x.an instanceof CmdFlag) {
+                else if(str.startsWith(dash) && str.trim().length() > 1) {
+                    Foo x = _getField(str.substring(1, 2), false);
                 }
-            }
-            else if(str.startsWith("-") && str.trim().length() > 1) {
             }
         }
     }
@@ -133,50 +143,39 @@ public abstract class CmdLineProcess {
             else if(fld.getType().isAssignableFrom(Date.class)) {
                 fld.set(__TARGET__, new SimpleDateFormat().parse(value));
             }
-        } catch(Exception e) {
+        }
+        catch(Exception e) {
             throw new CmdLineException(e);
         }
     }
 
     private Foo getField(String name) throws CmdLineException {
-        Class<?> tcls = __TARGET__.getClass();
-
-        for(Field f : tcls.getFields()) {
-            CmdFlag anFlag = f.getAnnotation(CmdFlag.class);
-            if(isMatch(name, anFlag, false)) return new Foo(f, anFlag);
-            CmdParam anParam = f.getAnnotation(CmdParam.class);
-            if(isMatch(name, anParam, false)) return new Foo(f, anParam);
-        }
-
-        for(Method m : tcls.getMethods()) {
-            CmdFlag anFlag = m.getAnnotation(CmdFlag.class);
-            if(isMatch(name, anFlag, false)) return new Foo(validateSetter(m), anFlag);
-            CmdParam anParam = m.getAnnotation(CmdParam.class);
-            if(isMatch(name, anParam, false)) return new Foo(validateSetter(m), anParam);
-        }
-
-        throw new CmdLineUsageException("Unknown Parameter or Flag: --%s", name);
+        return _getField(name, true);
     }
 
     private Foo getField(char name) throws CmdLineException {
+        return _getField(String.valueOf(name), false);
+    }
+
+    private Foo _getField(String name, boolean isLong) throws CmdLineException {
         Class<?> tcls  = __TARGET__.getClass();
-        String   _name = String.valueOf(name);
+        String   pName = String.format("%s%s", m.getString(isLong ? "ddash" : "dash"), name);
 
-        for(Field f : tcls.getFields()) {
-            CmdFlag anFlag = f.getAnnotation(CmdFlag.class);
-            if(isMatch(_name, anFlag, false)) return new Foo(f, anFlag);
-            CmdParam anParam = f.getAnnotation(CmdParam.class);
-            if(isMatch(_name, anParam, false)) return new Foo(f, anParam);
+        for(Field field : tcls.getFields()) {
+            CmdFlag anFlag = field.getAnnotation(CmdFlag.class);
+            if(isMatch(name, anFlag, isLong)) return new Foo(field, anFlag);
+            CmdParam anParam = field.getAnnotation(CmdParam.class);
+            if(isMatch(name, anParam, isLong)) return new Foo(field, anParam);
         }
 
-        for(Method m : tcls.getMethods()) {
-            CmdFlag anFlag = m.getAnnotation(CmdFlag.class);
-            if(isMatch(_name, anFlag, false)) return new Foo(validateSetter(m), anFlag);
-            CmdParam anParam = m.getAnnotation(CmdParam.class);
-            if(isMatch(_name, anParam, false)) return new Foo(validateSetter(m), anParam);
+        for(Method method : tcls.getMethods()) {
+            CmdFlag anFlag = method.getAnnotation(CmdFlag.class);
+            if(isMatch(name, anFlag, isLong)) return new Foo(validateSetter(method), anFlag);
+            CmdParam anParam = method.getAnnotation(CmdParam.class);
+            if(isMatch(name, anParam, isLong)) return new Foo(validateSetter(method), anParam);
         }
 
-        throw new CmdLineUsageException("Unknown Parameter or Flag: --%s", _name);
+        throw new CmdLineUsageException(m.getString("msg.err.unknown.parameter"), pName);
     }
 
     private boolean isMatch(String name, CmdFlag flg, boolean isLong) {
@@ -187,9 +186,9 @@ public abstract class CmdLineProcess {
         return flg != null && name.equals(isLong ? flg.longName() : flg.shortName());
     }
 
-    private AccessibleObject validateSetter(Method m) throws CmdLineException {
-        if(m.getParameterCount() == 1 && m.getReturnType() == Void.class) return m;
-        throw new CmdLineException("Incorrect method signature.");
+    private AccessibleObject validateSetter(Method method) throws CmdLineException {
+        if(method.getParameterCount() == 1 && method.getReturnType() == Void.class) return method;
+        throw new CmdLineException(m.getString("msg.err.bad_meth_sig"));
     }
 
     public int handleError(Throwable e) {
@@ -201,7 +200,8 @@ public abstract class CmdLineProcess {
         try {
             processArguments(args);
             System.exit(main());
-        } catch(Exception e) {
+        }
+        catch(Exception e) {
             System.exit(handleError(e));
         }
     }
