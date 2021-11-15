@@ -35,4 +35,14 @@ public final class U {
         for(int i : ar) if(i == value) return true;
         return false;
     }
+
+    @SafeVarargs
+    public static <T> boolean contains(T value, T... args) {
+        for(T other : args) if(value.equals(other)) return true;
+        return false;
+    }
+
+    public static boolean isArrayOf(Class<?> cls, Class<?> compCls) {
+        return (cls.isArray() && cls.getComponentType().isAssignableFrom(compCls));
+    }
 }
